@@ -494,3 +494,129 @@ func parseMLST(entry string, skipSelfParent bool) (os.FileInfo, error) {
 
 	return info, nil
 }
+
+
+
+
+
+func (c *Client) ReadDirZxc(path string) (map[string]string, error) {
+	entries, err := c.dataStringList("LIST %s", path)
+	if err != nil {
+		return nil, err
+	}
+	parser := func(entry string, skipSelfParent bool) ([]string, error) {
+		return parseLISTZxc(entry, c.config.ServerLocation, skipSelfParent)
+	}
+
+
+	var ret = make(map[string]string)
+	for _, entry := range entries {
+		info, err := parser(entry, true)
+		if err != nil {
+			c.debug("error in ReadDir: %s", err)
+			return nil, err
+		}
+
+		if info == nil {
+			continue
+		}
+
+		ret[info[0]] = info[1]
+	}
+
+	return ret, nil
+}
+
+
+
+
+var lsRegexZxc = regexp.MustCompile(`^.*(Inventory_(\d{8})\d+.csv)$`)
+
+// total 404456
+// drwxr-xr-x   8 goftp    20            272 Jul 28 05:03 git-ignored
+func parseLISTZxc(entry string, loc *time.Location, skipSelfParent bool) ([]string, error) {
+	if strings.HasPrefix(entry, "total ") {
+		return nil, nil
+	}
+
+	matches := lsRegexZxc.FindStringSubmatch(entry)
+	if len(matches) == 0 {
+		return nil, nil
+		//return nil, ftpError{err: fmt.Errorf(`failed parsing LIST entry: %s`, entry)}
+	}
+
+
+
+    var sliceTemple = make([]string,2,2)
+    sliceTemple[0]=matches[2]
+	sliceTemple[1]=matches[1]
+	return sliceTemple, nil
+
+
+
+	//
+	//
+	//
+	//
+	//
+	//if skipSelfParent && (matches[8] == "." || matches[8] == "..") {
+	//	return nil, nil
+	//}
+	//
+	//var mode os.FileMode
+	//switch matches[1] {
+	//case "d":
+	//	mode |= os.ModeDir
+	//case "l":
+	//	mode |= os.ModeSymlink
+	//}
+	//
+	//for i := 0; i < 3; i++ {
+	//	if matches[i+2][0] == 'r' {
+	//		mode |= os.FileMode(04 << (3 * uint(2-i)))
+	//	}
+	//	if matches[i+2][1] == 'w' {
+	//		mode |= os.FileMode(02 << (3 * uint(2-i)))
+	//	}
+	//	if matches[i+2][2] == 'x' || matches[i+2][2] == 's' {
+	//		mode |= os.FileMode(01 << (3 * uint(2-i)))
+	//	}
+	//}
+	//
+	//size, err := strconv.ParseUint(matches[5], 10, 64)
+	//if err != nil {
+	//	return nil, ftpError{err: fmt.Errorf(`failed parsing LIST entry's size: %s (%s)`, err, entry)}
+	//}
+	//
+	//var mtime time.Time
+	//if strings.Contains(matches[7], ":") {
+	//	mtime, err = time.ParseInLocation("Jan _2 15:04", matches[6]+" "+matches[7], loc)
+	//	if err == nil {
+	//		now := time.Now()
+	//		year := now.Year()
+	//		if mtime.Month() > now.Month() {
+	//			year--
+	//		}
+	//		mtime, err = time.ParseInLocation("Jan _2 15:04 2006", matches[6]+" "+matches[7]+" "+strconv.Itoa(year), loc)
+	//	}
+	//} else {
+	//	mtime, err = time.ParseInLocation("Jan _2 2006", matches[6]+" "+matches[7], loc)
+	//}
+	//
+	//if err != nil {
+	//	return nil, ftpError{err: fmt.Errorf(`failed parsing LIST entry's mtime: %s (%s)`, err, entry)}
+	//}
+	//
+	//info := &ftpFile{
+	//	name:  filepath.Base(matches[8]),
+	//	mode:  mode,
+	//	mtime: mtime,
+	//	raw:   entry,
+	//	size:  int64(size),
+	//}
+	//
+	//return info, nil
+
+}
+
+
